@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .home {
+            color: #35b61e;
+            font-size: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid  #35b61e;
+            padding-bottom: 10px;
+        }
+
+        .box {
+            border: 1px solid   #35b61e;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .box-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .btn-container {
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px 15px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 30px  5px 54px;
+            text-decoration: none;
+            width: 250px;
+            height: 50px;
+        }
+
+        .btn:hover {
+            background-color:  #60b351;
+            transition: 0.7s;
+        }
+
+        .btn-on {
+            background-color:  #35b61e;
+            color: white;
+        }
+        .btn-off {
+            background-color:  #35b61e;
+            color: white;
+            margin: 5px 20px;
+        }
+
+       
+        a {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+            text-decoration: none;
+            color:  #35b61e;
+            font-weight: bold;
+        }
+
+        a:hover {
+            color:#60b351;
+        }
+        .min{
+            margin: 5px 55px 5px 5px;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="home">Smart home</h1>
+    <div class="box">
+        <div class="box-row">
+            <p>Current Temperature: <span>{{ current_temperature }}°C</span></p>
+            <p>Current Humidity: <span>{{ current_humidity }}%</span></p>
+        </div>
+        
+    </div>
+
+    <div class="box">
+        <div class="box-row">
+            <div>Max Temperature: <span>{{ max_temperature }}°C</span></div>
+            <div>Min Temperature: <span>{{ min_temperature }}°C</span></div>
+        </div>
+        <div class="box-row">
+            <div>Max Humidity: <span>{{ max_humidity }}%</span></div>
+            <div class="min">Min Humidity: <span>{{ min_humidity }}%</span></div>
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <div class="box">Fan:{{ fan_state }}
+            <button class="btn btn-on" onclick="toggleFan('{{ fan_state }}')">{{ fan_button_text }}</button>
+        </div>
+    </div>
+    <div class="btn-container">
+        <div class="box">Window:{{ window_state }}
+            <button class="btn btn-off" onclick="toggleWindow('{{ window_state }}')">{{ window_button_text }}</button>
+            
+        </div>
+    </div>
+    <!-- photosensor -->
+    <div class="btn-container">
+        <div class="box">led: {{ led_state }}
+            <button class="btn btn-off" onclick="toggleled('{{ led_state }}')">{{ led_button_text }}</button>
+            
+        </div>
+    </div>
+    
+
+    <!-- Replace the placeholder link with an iframe to display the plot -->
+    <!-- Add a link to navigate to the plot page -->
+    <div>
+        <a href="/plot">View Temperature and Humidity Plot</a>
+    </div>
+</div>
+    <script>
+        // MQTT client setup
+        var client = new Paho.MQTT.Client("192.168.137.1", 1883, "clientId");
+    
+        client.onConnectionLost = function (responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Connection lost: " + responseObject.errorMessage);
+            }
+        };
+    
+        client.onMessageArrived = function (message) {
+            if (message.destinationName === "fan_state") {
+                fan_state = message.payloadString;
+                document.getElementById("fan_button").textContent = fan_state;
+            } else if (message.destinationName === "window_state") {
+                window_state = message.payloadString;
+                document.getElementById("window_button").textContent = window_state;
+            } else if (message.destinationName === "led_state") {
+                led_state = message.payloadString;
+                document.getElementById("led_button").textContent = led_state;
+            }
+        };
+    
+        client.connect({ onSuccess: onConnect });
+    
+        function onConnect() {
+            console.log("Connected to MQTT broker");
+            client.subscribe("fan_state");
+            client.subscribe("window_state");
+            client.subscribe("led_state");
+        }
+    
+        function toggleFan(state) {
+            var newState = state === "On" ? "Off" : "On";
+            client.publish("fan_state", newState);
+        }
+    
+        function toggleWindow(state) {
+            var newState = state === "Open" ? "Closed" : "Open";
+            client.publish("window_state", newState);
+        }
+    
+        function toggleled(state) {
+            var newState = state === "On" ? "Off" : "On";
+            client.publish("led_state", newState);
+        }
+    </script>
+    
+</body>
+</html>
